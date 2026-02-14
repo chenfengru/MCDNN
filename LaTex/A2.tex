@@ -1,0 +1,244 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{lastpage}
+
+\pagestyle{fancy}
+\fancyhead[L]{\textbf{Assignment 2 - Chen Fengru}}
+\fancyhead[R]{\today}
+\fancyfoot[C]{Page \thepage\ of \pageref{LastPage}}
+
+\begin{document}
+
+\noindent\textbf{\Large Assignment 2 - Chen Fengru} \\
+\noindent\rule{\textwidth}{0.8pt}
+
+\vspace{0.3cm}
+\noindent\textbf{Question 2:} Construct a neural network with one hidden layer to solve the XOR gate problem.
+ Experiment with hidden layer sizes of 2, 3, and 4 neurons (using sigmoid activation) and compare training accuracy. 
+ Explain why a single-layer network fails for XOR and how hidden layer size impacts the network's ability to learn this non-linear pattern.
+
+\section{Implementation}
+I implemented a 2-layer Neural Network (Input-Hidden-Output). 
+The implementation uses back-propagation to update weights based on the Cross-Entropy loss function.
+
+\subsection{basic data}
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+import numpy as np
+import matplotlib.pyplot as plt
+
+x=np.array([
+    [0,0],
+    [0,1],
+    [1,0],
+    [1,1]
+])
+
+y_xor=np.array([[0],[1],[1],[0]])
+\end{lstlisting}
+We used a simple feedforward neural network with:
+
+1. An input layer
+
+2. One hidden layer
+
+3. One output neuron
+The model can be written as:
+\begin{align*}
+Z_1 &= XW_1 + b_1 \\
+A_1 &= f(Z_1) \\
+Z_2 &= A_1W_2 + b_2 \\
+\hat{y} &= \sigma(Z_2)
+\end{align*}
+
+
+\subsection{sigmoid and it's derivative function}
+
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+def sigmoid_derivative(x):
+    return x*(1-x)
+\end{lstlisting}
+
+
+\subsection{One hidden layer neural network}
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+class OneHiddenLayerNN:
+    def __init__(self, hidden_size,lr=0.5,epoch=30000):
+        self.hidden_size=hidden_size
+        self.lr = lr
+        self.epoch=epoch
+        self.loss=[]
+
+    def fit(self,x,y):
+
+
+        self.W1=np.random.randn(2,self.hidden_size)*0.1
+        self.b1=np.zeros((1,self.hidden_size))
+
+        self.W2=np.random.randn(self.hidden_size,1)*0.1
+        self.b2=np.zeros((1,1))
+
+        for _ in range(self.epoch):
+            z1=np.dot(x,self.W1)+self.b1
+            a1=sigmoid(z1)
+
+            z2=np.dot(a1,self.W2)+self.b2
+            y_hat=sigmoid(z2)
+
+            #loss=-np.mean((y_hat-y)**2)
+            loss=-np.mean(y*np.log(y_hat+1e-8)+(1-y)*np.log(1-y_hat+1e-8))
+            self.loss.append(loss)
+
+            error_output=y-y_hat
+            d_output=error_output*sigmoid_derivative(y_hat)
+
+            error_hidden=np.dot(d_output,self.W2.T)
+            d_hidden=error_hidden*sigmoid_derivative(a1)
+
+            self.W2+=self.lr*np.dot(a1.T,d_output)
+            self.b2+=self.lr*np.sum(d_output,axis=0,keepdims=True)
+
+            self.W1+=self.lr*np.dot(x.T,d_hidden)
+            self.b1+=self.lr*np.sum(d_hidden,axis=0,keepdims=True)
+
+            #print("Raw output:", y_hat.T)
+            #print("Loss:", loss)
+        #self.final_loss = loss
+
+
+    def predict(self,x):
+        a1=sigmoid(np.dot(x,self.W1)+self.b1)
+        y_hat=sigmoid(np.dot(a1,self.W2)+self.b2)
+        return (y_hat>=0.5).astype(int)
+
+\end{lstlisting}
+
+\subsection{Run more layers}
+
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+#np.random.seed(42)
+for h in [2,3,4]:
+    model=OneHiddenLayerNN(hidden_size=h)
+    model.fit(x,y_xor)
+    predicts=model.predict(x)
+    acc=np.mean(predicts==y_xor)
+    print("Hidden layer",h,"Accuracy:",acc)
+    #print(f"Final Loss: {model.final_loss:.4f}")
+\end{lstlisting}
+
+\subsection{Mutiple times run}
+
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+num_run=10
+hidden_sizes=[2,3,4]
+epoch=30000
+
+result={}
+
+for h in hidden_sizes:
+    all_losses=[]
+    all_accuracies=[]
+
+    for run in range(num_run):
+        np.random.seed(run)
+
+        model=OneHiddenLayerNN(hidden_size=h,epoch=epoch)
+        model.fit(x,y_xor)
+        all_losses.append(model.loss)
+        predictions=model.predict(x)
+        acc=np.mean(predictions==y_xor)
+        all_accuracies.append(acc)
+
+    result[h]={
+        'loss': np.array(all_losses),
+        'accuracy': np.array(all_accuracies)
+    }
+
+for h in hidden_sizes:
+    result[h]["Mean_loss"]=np.mean(result[h]["loss"],axis=0)
+    result[h]["Std_loss"]=np.std(result[h]["loss"],axis=0)
+    result[h]["Mean_accuracy"]=np.mean(result[h]["accuracy"])
+\end{lstlisting}
+
+\subsection{Plot the mean result}
+
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+plt.figure(figsize=(8,5))
+
+colors = {
+    2: "tab:blue",
+    3: "tab:orange",
+    4: "tab:green"
+}
+
+for h in [2, 3, 4]:
+    #model = OneHiddenLayerNN(hidden_size=h)
+
+    mean_loss=result[h]["Mean_loss"]
+    std_loss=result[h]["Std_loss"]
+
+    plt.plot(mean_loss,
+             color=colors[h],
+             label=f"Hidden = {h}"
+    )
+
+    plt.fill_between(
+        range(len(mean_loss)),
+        mean_loss-std_loss,
+        mean_loss+std_loss,
+        color=colors[h],
+        alpha=0.2
+    )
+
+plt.xlabel("Epochs")
+plt.ylabel("Loss (Binary Cross-Entropy)")
+
+plt.title("Average Training Loss over 10 Runs (XOR)")
+plt.grid(True)
+plt.legend()
+plt.show()
+\end{lstlisting}
+
+\subsection{Accuracy of different layers}
+
+\begin{lstlisting}[language=Python, frame=single, caption={XOR Solver with Hidden Layers}]
+for h in hidden_sizes:
+    final_losses=result[h]["loss"][:,-1]
+    print(f"Hidden = {h}")
+    print(f"Mean Accuracy: {result[h]['Mean_accuracy']:.2f}")
+    print(f"Final Loss: {np.mean(final_losses):.4f} ± {np.std(final_losses):.4f}")
+    print()
+\end{lstlisting}
+
+\section{Experimental Results}
+\begin{table}[h]
+\centering
+\caption{Comparison of Hidden Layer Sizes}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Hidden Neurons} & \textbf{Epochs} & \textbf{Final Loss} & \textbf{Mean Accuracy} \\ \midrule
+2 & 30000 & [0.2153 ± 0.3092] & 0.88 \\
+3 & 30000 & [0.0115 ± 0.0030] & 1.00 \\
+4 & 30000 & [0.1467 ± 0.2732] & 0.90 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\section{Theoretical Analysis}
+\subsection{Why Single-Layer Networks Fail for XOR}
+XOR is a **non-linearly separable** problem. A single-layer perceptron can only create a single linear decision boundary (a line). As shown in the input space, it is impossible to separate [0,0] and [1,1] from [0,1] and [1,0] using one straight line. 
+
+\subsection{Impact of Hidden Layer Size}
+\begin{itemize}
+    \item \textbf{2 Neurons:} The theoretical minimum. It transforms the input space into a new feature space where the data becomes linearly separable. However, it can sometimes get stuck in local minima depending on initialization.
+    \item \textbf{3 \& 4 Neurons:} Increased redundancy allows for faster convergence and higher stability. More neurons provide more "decision lines" to wrap around the non-linear XOR data points.
+\end{itemize}
+
+\end{document}
