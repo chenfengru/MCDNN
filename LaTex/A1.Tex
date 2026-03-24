@@ -196,15 +196,7 @@ def classify(y_hat, threshold=0.5):
 \section{Experimental Results}
 All results are generated from the above code with fixed 1000 epochs and learning rate 0.1. 
 The key outputs include classification predictions, accuracy metrics, and loss convergence plots.
-\begin{lstlisting}[caption={activations}]
-activations={
-    "step":step,
-    "sigmoid":sigmoid,
-    "tanh":tanh,
-    "relu":relu,
-    "leaky_relu":leaky_relu
-}
-\end{lstlisting}
+
 \subsection{AND/OR Gate Classification Results}
 \begin{table}[h!]
 \centering
@@ -287,6 +279,7 @@ ReLU and leaky ReLU also achieved strong performance in these experiments. Their
 
 Overall, the results indicate that the complexity of the task plays a crucial role in activation function selection. For linearly separable and low-dimensional problems, most activation functions can achieve high accuracy. However, for more complex or deep neural networks, differentiability, gradient stability, and computational efficiency become increasingly important. Therefore, sigmoid or tanh may be suitable for small-scale problems, while ReLU-based activation functions are generally preferred in deep learning tasks due to their scalability and training efficiency.
 
-
+\section{Raw code}
+All my code was in github:https://github.com/chenfengru/MCDNN
 
 \end{document}
